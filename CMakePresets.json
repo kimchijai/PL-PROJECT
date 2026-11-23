@@ -1,0 +1,66 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "qt-6.12.0-mingw",
+            "displayName": "Qt 6.12.0 MinGW",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/qt-6.12.0-mingw",
+            "cacheVariables": {
+                "BUILD_TESTING": "ON",
+                "CMAKE_CXX_COMPILER": "C:/Qt/Tools/mingw1310_64/bin/g++.exe",
+                "CMAKE_MAKE_PROGRAM": "C:/Qt/Tools/Ninja/ninja.exe",
+                "CMAKE_PREFIX_PATH": "C:/Qt/6.12.0/mingw_64",
+                "Qt6_DIR": "C:/Qt/6.12.0/mingw_64/lib/cmake/Qt6",
+                "SQLite3_INCLUDE_DIR": "C:/msys64/ucrt64/include",
+                "SQLite3_LIBRARY": "C:/msys64/ucrt64/lib/libsqlite3.dll.a"
+            }
+        },
+        {
+            "name": "qt-6.12.0-mingw-release",
+            "displayName": "Qt 6.12.0 MinGW Release",
+            "inherits": "qt-6.12.0-mingw",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "qt-6.12.0-mingw",
+            "configurePreset": "qt-6.12.0-mingw"
+        },
+        {
+            "name": "qt-6.12.0-mingw-release",
+            "configurePreset": "qt-6.12.0-mingw-release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "qt-6.12.0-mingw",
+            "configurePreset": "qt-6.12.0-mingw",
+            "output": {
+                "outputOnFailure": true
+            },
+            "environment": {
+                "PATH": "C:/Qt/6.12.0/mingw_64/bin;C:/Qt/Tools/mingw1310_64/bin;C:/msys64/ucrt64/bin;$penv{PATH}"
+            }
+        },
+        {
+            "name": "qt-6.12.0-mingw-release",
+            "configurePreset": "qt-6.12.0-mingw-release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "environment": {
+                "PATH": "C:/Qt/6.12.0/mingw_64/bin;C:/Qt/Tools/mingw1310_64/bin;C:/msys64/ucrt64/bin;$penv{PATH}"
+            }
+        }
+    ]
+}

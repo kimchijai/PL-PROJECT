@@ -1,0 +1,7 @@
+{
+    "cmake.useCMakePresets": "always",
+    "cmake.configurePreset": "qt-6.12.0-mingw",
+    "cmake.buildPreset": "qt-6.12.0-mingw",
+    "cmake.testPreset": "qt-6.12.0-mingw",
+    "cmake.configureOnOpen": true
+}

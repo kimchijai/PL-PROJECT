@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/assets">
+        <file alias="crombi-logo.png">crombi-logo.png</file>
+        <file alias="toggle-sidebar.png">toggle_sidebar.png</file>
+        <file alias="products/chocolate_chip.jpg">products/chocolate_chip.jpg</file>
+        <file alias="products/double_chocolate.jpg">products/double_chocolate.jpg</file>
+        <file alias="products/red_velvet.jpg">products/red_velvet.jpg</file>
+        <file alias="products/smores.jpg">products/smores.jpg</file>
+        <file alias="products/brookies.jpg">products/brookies.jpg</file>
+        <file alias="products/nutella.jpg">products/nutella.jpg</file>
+        <file alias="products/dubai_chewy_one_piece.jpg">products/dubai_chewy_one piece.jpg</file>
+        <file alias="products/dubai_chewy_four_pieces.jpg">products/dubai_chewy_four pieces.jpg</file>
+    </qresource>
+</RCC>

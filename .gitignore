@@ -1,0 +1,32 @@
+# CMake and local build outputs
+/build*/
+/CMakeUserPresets.json
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/build.ninja
+
+# Compiled binaries and object files
+*.exe
+*.dll
+*.o
+*.obj
+*.a
+*.lib
+
+# Local SQLite databases, journals, backups, and user-uploaded images
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+/assets/products/uploads/
+
+# Generated distribution archives
+/dist/
+/nul
+
+# Windows/editor-generated metadata
+Thumbs.db
+Desktop.ini
+*.user
+*.suo

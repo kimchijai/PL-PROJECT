@@ -1,4 +1,5 @@
 #include "../gui/SalesPage.h"
+#include "../gui/ApplicationFont.h"
 
 #include <QApplication>
 #include <QLabel>
@@ -13,6 +14,11 @@
 
 int main(int argc, char* argv[]) {
     QApplication application(argc, argv);
+    QString fontError;
+    if (!GuiApplicationFont::load(fontError)) {
+        std::cerr << fontError.toStdString() << "\n";
+        return 1;
+    }
     QTemporaryDir temporaryDirectory;
     if (!temporaryDirectory.isValid()) {
         std::cerr << "Could not create temporary directory.\n";

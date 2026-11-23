@@ -43,9 +43,9 @@ foreach ($requiredPath in @(
         $deployTool,
         $sqliteCli,
         $sqliteDll,
-        (Join-Path $repositoryRoot "assets\fonts\Inter-Variable.ttf"),
-        (Join-Path $repositoryRoot "assets\fonts\Poppins-Regular.ttf"),
-        (Join-Path $repositoryRoot "assets\fonts\Poppins-SemiBold.ttf"))) {
+        (Join-Path $repositoryRoot "assets\fonts\GoogleSansFlex[ROND,opsz,slnt,wdth,wght].ttf"),
+        (Join-Path $repositoryRoot "assets\fonts\OFL-GoogleSansFlex.txt"),
+        (Join-Path $repositoryRoot "assets\fonts\TRADEMARKS-GoogleSansFlex.md"))) {
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
         throw "Required packaging input is missing: $requiredPath"
     }
@@ -82,8 +82,15 @@ try {
         -Destination $assetsDirectory
     Get-ChildItem -LiteralPath (Join-Path $repositoryRoot "assets\products") `
         -File -Filter "*.jpg" | Copy-Item -Destination $productsDirectory
-    Get-ChildItem -LiteralPath (Join-Path $repositoryRoot "assets\fonts") `
-        -File | Copy-Item -Destination $fontsDirectory
+    Copy-Item -LiteralPath (Join-Path $repositoryRoot `
+        "assets\fonts\GoogleSansFlex[ROND,opsz,slnt,wdth,wght].ttf") `
+        -Destination (Join-Path $fontsDirectory "GoogleSansFlex.ttf")
+    Copy-Item -LiteralPath (Join-Path $repositoryRoot `
+        "assets\fonts\OFL-GoogleSansFlex.txt") `
+        -Destination (Join-Path $fontsDirectory "OFL.txt")
+    Copy-Item -LiteralPath (Join-Path $repositoryRoot `
+        "assets\fonts\TRADEMARKS-GoogleSansFlex.md") `
+        -Destination (Join-Path $fontsDirectory "TRADEMARKS.md")
 
     $backupCommand = ".backup '$($stagedDatabase.Replace('\','/'))'"
     & $sqliteCli -readonly $SourceDatabase $backupCommand
@@ -149,7 +156,7 @@ try {
 Crombi Cookies POS - Portable Windows
 
 Run bakery_pos_gui.exe. This package includes the Qt runtime, SQLite, MinGW
-runtime, Windows platform plugin, product photos, and Inter/Poppins fonts.
+runtime, Windows platform plugin, product photos, and Google Sans Flex.
 
 Extract the folder to a location writable by your Windows account, such as
 Documents; avoid protected locations such as Program Files.
@@ -160,8 +167,9 @@ if the portable database is missing or empty, startup stops with an error.
 Back up the complete data folder before replacing or moving the package.
 
 The database in this archive is a consistent snapshot of the selected source
-database at package time. Font files are distributed under their included
-SIL Open Font Licenses.
+database at package time. Google Sans Flex is distributed under the included
+SIL Open Font License 1.1 (fonts\OFL.txt) and trademark notice
+(fonts\TRADEMARKS.md).
 "@
     Set-Content -LiteralPath (Join-Path $stageRoot "README.txt") `
         -Value $readme -Encoding UTF8
@@ -190,8 +198,9 @@ SIL Open Font Licenses.
         "libwinpthread-1.dll",
         "platforms\qwindows.dll",
         "imageformats\qjpeg.dll",
-        "fonts\OFL-Inter.txt",
-        "fonts\OFL-Poppins.txt",
+        "fonts\GoogleSansFlex.ttf",
+        "fonts\OFL.txt",
+        "fonts\TRADEMARKS.md",
         "data\bakery_pos.db",
         "data\assets\products\uploads"
     )
@@ -225,6 +234,8 @@ SIL Open Font Licenses.
         foreach ($requiredEntry in @(
                 "CrombiCookiesPOS/README.txt",
                 "CrombiCookiesPOS/bakery_pos_gui.exe",
+                "CrombiCookiesPOS/fonts/GoogleSansFlex.ttf",
+                "CrombiCookiesPOS/fonts/OFL.txt",
                 "CrombiCookiesPOS/data/bakery_pos.db",
                 "CrombiCookiesPOS/platforms/qwindows.dll")) {
             if ($entryNames -notcontains $requiredEntry) {

@@ -16,6 +16,16 @@ qt_add_resources(pos_assets_resources
     assets/assets.qrc
 )
 
+set(GOOGLE_SANS_FLEX_SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/GoogleSansFlex[ROND,opsz,slnt,wdth,wght].ttf")
+set(GOOGLE_SANS_FLEX_RUNTIME_DIR "${CMAKE_BINARY_DIR}/fonts")
+file(MAKE_DIRECTORY "${GOOGLE_SANS_FLEX_RUNTIME_DIR}")
+configure_file(
+    "${GOOGLE_SANS_FLEX_SOURCE}"
+    "${GOOGLE_SANS_FLEX_RUNTIME_DIR}/GoogleSansFlex.ttf"
+    COPYONLY
+)
+
 set(POS_BUSINESS_SOURCES
     Product.cpp
     CartItem.cpp
@@ -42,6 +52,7 @@ endif()
 add_executable(bakery_pos_gui WIN32
     gui/main.cpp
     gui/AppDataPaths.h
+    gui/ApplicationFont.h
     gui/DashboardPage.cpp
     gui/DashboardPage.h
     gui/MainWindow.cpp
@@ -83,6 +94,7 @@ include(CTest)
 if(BUILD_TESTING)
     add_executable(gui_navigation_smoke
         tests/gui_navigation_smoke.cpp
+        gui/ApplicationFont.h
         gui/AppDataPaths.h
         gui/DashboardPage.cpp
         gui/DashboardPage.h
@@ -127,6 +139,7 @@ if(BUILD_TESTING)
 
     add_executable(gui_sales_smoke
         tests/gui_sales_smoke.cpp
+        gui/ApplicationFont.h
         gui/SalesPage.cpp
         gui/SalesPage.h
         gui/PosController.cpp
@@ -153,6 +166,7 @@ if(BUILD_TESTING)
 
     add_executable(gui_products_inventory_smoke
         tests/gui_products_inventory_smoke.cpp
+        gui/ApplicationFont.h
         gui/ProductsPage.cpp
         gui/ProductsPage.h
         gui/InventoryPage.cpp
@@ -181,6 +195,7 @@ if(BUILD_TESTING)
 
     add_executable(gui_transactions_reports_smoke
         tests/gui_transactions_reports_smoke.cpp
+        gui/ApplicationFont.h
         gui/TransactionsPage.cpp
         gui/TransactionsPage.h
         gui/ReportsPage.cpp

@@ -1,40 +1,26 @@
 #include "MainWindow.h"
 #include "AppDataPaths.h"
+#include "ApplicationFont.h"
 #include "ProductImagePaths.h"
 
 #include <QApplication>
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
-#include <QFontDatabase>
 #include <QMessageBox>
 #include <QStringList>
-
-namespace {
-void loadPackagedFonts() {
-    const QString fontsDirectory = QDir(QCoreApplication::applicationDirPath())
-        .filePath("fonts");
-    const QStringList fonts = {
-        "Inter-Variable.ttf",
-        "Poppins-Regular.ttf",
-        "Poppins-SemiBold.ttf"
-    };
-    for (const QString& font : fonts) {
-        const QString path = QDir(fontsDirectory).filePath(font);
-        if (QFileInfo::exists(path)
-            && QFontDatabase::addApplicationFont(path) < 0) {
-            qWarning() << "Could not load packaged font:" << path;
-        }
-    }
-}
-}
 
 int main(int argc, char* argv[]) {
     QApplication application(argc, argv);
     QCoreApplication::setOrganizationName("Crombi Cookies");
     QCoreApplication::setApplicationName("Crombi Bakery POS");
 
-    loadPackagedFonts();
+    QString fontError;
+    if (!GuiApplicationFont::load(fontError)) {
+        qCritical().noquote() << fontError;
+        QMessageBox::critical(nullptr, "Font initialization failed", fontError);
+        return 1;
+    }
     const QString applicationDataDirectory =
         ProductImagePaths::applicationDataRoot();
     const QString expectedDatabase =

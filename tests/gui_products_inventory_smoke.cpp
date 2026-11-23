@@ -1,5 +1,6 @@
 #include "../gui/InventoryPage.h"
 #include "../gui/ProductsPage.h"
+#include "../gui/ApplicationFont.h"
 
 #include <QApplication>
 #include <QFileDialog>
@@ -36,6 +37,11 @@ int findProductRow(QTableWidget* table, int idColumn, const QString& productId) 
 
 int main(int argc, char* argv[]) {
     QApplication application(argc, argv);
+    QString fontError;
+    if (!GuiApplicationFont::load(fontError)) {
+        std::cerr << fontError.toStdString() << "\n";
+        return 1;
+    }
     QCoreApplication::setOrganizationName("Crombi Tests");
     QCoreApplication::setApplicationName("Product Inventory Smoke");
     QStandardPaths::setTestModeEnabled(true);

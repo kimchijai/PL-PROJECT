@@ -2,6 +2,7 @@
 #include "../gui/TransactionsPage.h"
 #include "../gui/ExportService.h"
 #include "../gui/DisplayFormatting.h"
+#include "../gui/ApplicationFont.h"
 #include "../DatabaseManager.h"
 
 #include <QApplication>
@@ -471,6 +472,11 @@ bool verifyTemporaryDatabase(const std::string& path) {
 
 int main(int argc, char* argv[]) {
     QApplication application(argc, argv);
+    QString fontError;
+    if (!GuiApplicationFont::load(fontError)) {
+        std::cerr << fontError.toStdString() << "\n";
+        return 1;
+    }
     if (argc > 1) {
         QTemporaryDir temporaryDirectory;
         if (!temporaryDirectory.isValid()) {

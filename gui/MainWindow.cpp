@@ -82,7 +82,7 @@ MainWindow::MainWindow(const std::string& databasePath, QWidget* parent)
         QMainWindow, QWidget#root {
             background: #FFF9F2;
             color: #59434A;
-            font-family: "Inter", "Poppins", "Segoe UI", sans-serif;
+            font-family: "Google Sans Flex", "Segoe UI", sans-serif;
             font-size: 10pt;
         }
         QWidget#loginPage, QWidget#administratorSetupPage,
@@ -311,7 +311,7 @@ MainWindow::MainWindow(const std::string& databasePath, QWidget* parent)
             border-radius: 12px;
         }
         QPlainTextEdit#transactionReceipt {
-            font-family: Consolas, monospace;
+            font-family: "Google Sans Flex", "Segoe UI", sans-serif;
         }
         QSplitter::handle {
             background: transparent;
@@ -503,7 +503,9 @@ MainWindow::MainWindow(const std::string& databasePath, QWidget* parent)
     contentLayout->setContentsMargins(34, 30, 34, 34);
     contentLayout->setSpacing(18);
 
-    auto* header = new QHBoxLayout();
+    auto* header = new QVBoxLayout();
+    header->setSpacing(8);
+    auto* titleRow = new QHBoxLayout();
     auto* reopenToggle = new QPushButton(content);
     reopenToggle->setObjectName("sidebarReopenToggle");
     reopenToggle->setIcon(QIcon(":/assets/toggle-sidebar.png"));
@@ -514,7 +516,7 @@ MainWindow::MainWindow(const std::string& databasePath, QWidget* parent)
     connect(reopenToggle, &QPushButton::clicked, this, [this]() {
         setSidebarCollapsed(false);
     });
-    header->addWidget(reopenToggle);
+    titleRow->addWidget(reopenToggle);
     pageTitle_ = new QLabel(content);
     pageTitle_->setObjectName("pageTitle");
     auto* status = new QLabel(content);
@@ -530,8 +532,11 @@ MainWindow::MainWindow(const std::string& databasePath, QWidget* parent)
     status->setText(ready
         ? QStringLiteral("Database ready · %1 products").arg(activeProducts.size())
         : QStringLiteral("Database unavailable"));
-    header->addWidget(pageTitle_);
-    header->addStretch();
+    titleRow->addWidget(pageTitle_);
+    titleRow->addStretch();
+    titleRow->addWidget(status);
+    auto* headerActions = new QHBoxLayout();
+    headerActions->addStretch();
     operatorButton_ = new QPushButton(content);
     operatorButton_->setObjectName("currentOperatorButton");
     operatorButton_->setEnabled(false);
@@ -553,12 +558,13 @@ MainWindow::MainWindow(const std::string& databasePath, QWidget* parent)
     logoutButton_->setObjectName("logoutButton");
     connect(logoutButton_, &QPushButton::clicked,
             this, [this]() { logout(); });
-    header->addWidget(operatorButton_);
-    header->addWidget(manageOperatorsButton_);
-    header->addWidget(backupButton);
-    header->addWidget(restoreButton);
-    header->addWidget(logoutButton_);
-    header->addWidget(status);
+    headerActions->addWidget(operatorButton_);
+    headerActions->addWidget(manageOperatorsButton_);
+    headerActions->addWidget(backupButton);
+    headerActions->addWidget(restoreButton);
+    headerActions->addWidget(logoutButton_);
+    header->addLayout(titleRow);
+    header->addLayout(headerActions);
     contentLayout->addLayout(header);
 
     pageStack_->setObjectName("pageStack");

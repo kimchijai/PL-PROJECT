@@ -1,5 +1,6 @@
 #include "../gui/MainWindow.h"
 #include "../gui/AppDataPaths.h"
+#include "../gui/ApplicationFont.h"
 #include "../gui/ProductImagePaths.h"
 
 #include <QApplication>
@@ -7,6 +8,8 @@
 #include <QCoreApplication>
 #include <QDialog>
 #include <QDir>
+#include <QFontInfo>
+#include <QFontMetrics>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
@@ -26,6 +29,26 @@
 
 int main(int argc, char* argv[]) {
     QApplication application(argc, argv);
+    QString fontError;
+    if (!GuiApplicationFont::load(fontError)) {
+        std::cerr << fontError.toStdString() << "\n";
+        return 1;
+    }
+    QFont boldFont = application.font();
+    boldFont.setWeight(QFont::Bold);
+    const QFontInfo boldFontInfo(boldFont);
+    const QFontMetrics fontMetrics(application.font());
+    for (const QChar character : QStringLiteral("0123456789+-\u2212")) {
+        if (!fontMetrics.inFont(character)) {
+            std::cerr << "Google Sans Flex is missing a numeric or quantity glyph.\n";
+            return 1;
+        }
+    }
+    if (boldFontInfo.family() != QStringLiteral("Google Sans Flex")
+        || boldFontInfo.weight() < QFont::DemiBold) {
+        std::cerr << "Google Sans Flex bold text could not be resolved.\n";
+        return 1;
+    }
     const QString captureDirectory =
         qEnvironmentVariable("CROMBI_THEME_CAPTURE_DIR");
     if (!captureDirectory.isEmpty() && !QDir().mkpath(captureDirectory)) {
@@ -208,6 +231,11 @@ int main(int argc, char* argv[]) {
         temporaryDirectory.filePath("navigation-test.db").toStdString();
     MainWindow window(databasePath);
     const QString sharedStyle = application.styleSheet();
+    if (application.font().family() != QStringLiteral("Google Sans Flex")
+        || !sharedStyle.contains("font-family: \"Google Sans Flex\"")) {
+        std::cerr << "Google Sans Flex is not applied as the shared UI font.\n";
+        return 1;
+    }
     QString quantityButtonStyle;
     const int quantityButtonStart =
         sharedStyle.indexOf("QSpinBox::up-button, QSpinBox::down-button");
@@ -312,6 +340,7 @@ int main(int argc, char* argv[]) {
     }
     window.show();
     QCoreApplication::processEvents();
+    auto* pageTitle = window.findChild<QLabel*>("pageTitle");
     if (!capture(&window, "administrator-setup")) {
         return 1;
     }
@@ -373,6 +402,24 @@ int main(int argc, char* argv[]) {
         || operatorButton->text() != "Operator: test_admin") {
         std::cerr << "Valid login did not open the POS as its operator.\n";
         return 1;
+    }
+    if (!pageTitle || pageTitle->width() < pageTitle->sizeHint().width()) {
+        std::cerr << "The page title is clipped by the application header.\n";
+        return 1;
+    }
+    const QList<QPushButton*> headerButtons = {
+        operatorButton,
+        window.findChild<QPushButton*>("manageOperatorsButton"),
+        window.findChild<QPushButton*>("backupDatabaseButton"),
+        window.findChild<QPushButton*>("restoreDatabaseButton"),
+        window.findChild<QPushButton*>("logoutButton")
+    };
+    for (QPushButton* button : headerButtons) {
+        if (button && button->isVisible()
+            && button->width() < button->sizeHint().width()) {
+            std::cerr << "An application header action is clipped.\n";
+            return 1;
+        }
     }
     if (!capture(&window, "dashboard")) {
         return 1;
@@ -436,7 +483,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    auto* pageTitle = window.findChild<QLabel*>("pageTitle");
     for (int pageIndex = 0; pageIndex < 6; ++pageIndex) {
         auto* scrollArea = window.findChild<QScrollArea*>(
             QStringLiteral("pageScrollArea%1").arg(pageIndex));
@@ -473,7 +519,8 @@ int main(int argc, char* argv[]) {
         QCoreApplication::processEvents();
         if (window.currentPageIndex() != pageIndex
             || pageStack->currentIndex() != pageIndex
-            || !button->isChecked()) {
+            || !button->isChecked()
+            || pageTitle->width() < pageTitle->sizeHint().width()) {
             std::cerr << "Navigation failed for page index " << pageIndex << ".\n";
             return 1;
         }

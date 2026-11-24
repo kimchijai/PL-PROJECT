@@ -447,6 +447,26 @@ bool ProductRepository::deleteProduct(const std::string& productId,
         return false;
     }
 
+    sqlite3_stmt* suppressSeed = nullptr;
+    if (sqlite3_prepare_v2(
+            db,
+            "INSERT OR REPLACE INTO product_seed_suppressions"
+            "(product_id, product_name) VALUES(?, ?);",
+            -1, &suppressSeed, nullptr) != SQLITE_OK) {
+        error = sqlite3_errmsg(db);
+        database_.rollbackTransaction();
+        return false;
+    }
+    sqlite3_bind_text(suppressSeed, 1, productId.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(suppressSeed, 2, existing.name.c_str(), -1, SQLITE_TRANSIENT);
+    result = sqlite3_step(suppressSeed);
+    sqlite3_finalize(suppressSeed);
+    if (result != SQLITE_DONE) {
+        error = sqlite3_errmsg(db);
+        database_.rollbackTransaction();
+        return false;
+    }
+
     if (!database_.commitTransaction()) {
         error = database_.getLastError();
         return false;

@@ -62,6 +62,10 @@ bool DatabaseManager::initializeSchema() {
         "active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0, 1)),"
         "FOREIGN KEY(category_id) REFERENCES categories(category_id)"
         ");"
+        "CREATE TABLE IF NOT EXISTS product_seed_suppressions ("
+        "product_id TEXT PRIMARY KEY,"
+        "product_name TEXT NOT NULL"
+        ");"
         "CREATE TABLE IF NOT EXISTS inventory ("
         "product_id TEXT PRIMARY KEY,"
         "quantity INTEGER NOT NULL CHECK(quantity >= 0),"
@@ -320,6 +324,27 @@ bool DatabaseManager::seedBakeryProducts() {
         sqlite3_finalize(existing);
         if (existingResult == SQLITE_ROW) continue;
         if (existingResult != SQLITE_DONE) {
+            lastError_ = sqlite3_errmsg(database_);
+            rollbackTransaction();
+            return false;
+        }
+
+        sqlite3_stmt* suppression = nullptr;
+        if (sqlite3_prepare_v2(
+                database_,
+                "SELECT 1 FROM product_seed_suppressions "
+                "WHERE product_id = ? OR lower(product_name) = lower(?) LIMIT 1;",
+                -1, &suppression, nullptr) != SQLITE_OK) {
+            lastError_ = sqlite3_errmsg(database_);
+            rollbackTransaction();
+            return false;
+        }
+        sqlite3_bind_text(suppression, 1, seed.productId, -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(suppression, 2, seed.name, -1, SQLITE_TRANSIENT);
+        const int suppressionResult = sqlite3_step(suppression);
+        sqlite3_finalize(suppression);
+        if (suppressionResult == SQLITE_ROW) continue;
+        if (suppressionResult != SQLITE_DONE) {
             lastError_ = sqlite3_errmsg(database_);
             rollbackTransaction();
             return false;

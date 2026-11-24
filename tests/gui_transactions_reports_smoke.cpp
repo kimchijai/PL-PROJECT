@@ -15,10 +15,13 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QPrintPreviewDialog>
+#include <QPrintPreviewWidget>
 #include <QPushButton>
 #include <QSplitter>
 #include <QTableWidget>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QFileInfo>
 
 #include <iostream>
@@ -462,6 +465,26 @@ bool verifyTemporaryDatabase(const std::string& path) {
     QFileInfo receiptInfo(receiptPath);
     if (!receiptInfo.exists() || receiptInfo.size() == 0) {
         std::cerr << "Historical receipt PDF was not created.\n";
+        return false;
+    }
+
+    bool previewOpened = false;
+    QTimer::singleShot(0, [&previewOpened]() {
+        for (QWidget* widget : QApplication::topLevelWidgets()) {
+            auto* preview = qobject_cast<QPrintPreviewDialog*>(widget);
+            if (!preview
+                || preview->objectName() != "receiptPrintPreviewDialog") {
+                continue;
+            }
+            previewOpened = preview->findChild<QPrintPreviewWidget*>() != nullptr;
+            preview->reject();
+            return;
+        }
+    });
+    std::string printError;
+    if (ExportService::printReceipt(first, historicalItems, nullptr, printError)
+        || !previewOpened || printError != "Printing cancelled.") {
+        std::cerr << "Historical receipt printing did not open a cancellable preview.\n";
         return false;
     }
 

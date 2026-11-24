@@ -6,6 +6,7 @@
 #include <QPagedPaintDevice>
 #include <QPdfWriter>
 #include <QPrintDialog>
+#include <QPrintPreviewDialog>
 #include <QTextDocument>
 
 #include <QFile>
@@ -382,13 +383,20 @@ bool ExportService::printReceipt(const TransactionRecord& transaction,
                                  std::string& error) {
     QPrinter printer(QPrinter::HighResolution);
     printer.setDocName(QString("Crombi-Receipt-%1").arg(transaction.transactionId));
-    QPrintDialog dialog(&printer, parent);
+    QPrintPreviewDialog dialog(&printer, parent);
+    dialog.setObjectName("receiptPrintPreviewDialog");
+    dialog.setWindowTitle(
+        QString("Receipt preview - Transaction #%1")
+            .arg(transaction.transactionId));
+    QTextDocument document;
+    document.setHtml(receiptHtml(transaction, items));
+    QObject::connect(&dialog, &QPrintPreviewDialog::paintRequested,
+                     &dialog, [&document](QPrinter* previewPrinter) {
+        document.print(previewPrinter);
+    });
     if (dialog.exec() != QDialog::Accepted) {
         error = "Printing cancelled.";
         return false;
     }
-    QTextDocument document;
-    document.setHtml(receiptHtml(transaction, items));
-    document.print(&printer);
     return true;
 }

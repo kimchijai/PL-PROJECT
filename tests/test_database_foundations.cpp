@@ -87,6 +87,44 @@ TEST_CASE("Database initialization seeds catalog once") {
     removeTempDb();
 }
 
+TEST_CASE("Deleting a seeded product keeps it deleted after database reinitialization") {
+    const char* path = "tests/deleted_seed_product_test.db";
+    std::remove(path);
+
+    std::string error;
+    ProductRecord deletedRecord{};
+    bool imagePathUnreferenced = false;
+    {
+        DatabaseManager database;
+        REQUIRE(database.open(path));
+        REQUIRE(database.initializeSchema());
+
+        ProductRepository products(database);
+        REQUIRE(products.deleteProduct("P001", deletedRecord,
+                                       imagePathUnreferenced, error));
+        CHECK(deletedRecord.productId == "P001");
+        ProductRecord record{};
+        CHECK_FALSE(products.findById("P001", record, error));
+    }
+
+    {
+        DatabaseManager reopened;
+        REQUIRE(reopened.open(path));
+        REQUIRE(reopened.initializeSchema());
+
+        ProductRepository products(reopened);
+        ProductRecord record{};
+        CHECK_FALSE(products.findById("P001", record, error));
+        REQUIRE(products.findById("P002", record, error));
+
+        std::vector<ProductRecord> catalog;
+        REQUIRE(products.getActive(catalog, error));
+        CHECK(catalog.size() == 7);
+    }
+
+    std::remove(path);
+}
+
 TEST_CASE("Inventory-log migration preserves legacy activity without product references") {
     const char* path = "tests/phase4_operator_migration.db";
     std::remove(path);

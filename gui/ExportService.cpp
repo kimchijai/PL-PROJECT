@@ -5,7 +5,6 @@
 #include <QPrinter>
 #include <QPagedPaintDevice>
 #include <QPdfWriter>
-#include <QPrintDialog>
 #include <QPrintPreviewDialog>
 #include <QTextDocument>
 
@@ -189,6 +188,32 @@ static QString receiptHtml(const TransactionRecord& transaction,
     return html;
 }
 
+static bool printHtmlWithPreview(const QString& documentName,
+                                 const QString& previewTitle,
+                                 const QString& dialogObjectName,
+                                 const QString& html,
+                                 QWidget* parent,
+                                 std::string& error) {
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setDocName(documentName);
+    QPrintPreviewDialog dialog(&printer, parent);
+    dialog.setObjectName(dialogObjectName);
+    dialog.setWindowTitle(previewTitle);
+
+    QTextDocument document;
+    document.setHtml(html);
+    QObject::connect(&dialog, &QPrintPreviewDialog::paintRequested,
+                     &dialog, [&document](QPrinter* previewPrinter) {
+        document.print(previewPrinter);
+    });
+
+    if (dialog.exec() != QDialog::Accepted) {
+        error = "Printing cancelled.";
+        return false;
+    }
+    return true;
+}
+
 bool ExportService::exportReportCsv(const std::string& path,
                                     const std::string& date,
                                     const DailySalesRecord& report,
@@ -248,17 +273,11 @@ bool ExportService::printReport(const std::string& date,
 const std::vector<OperatorSalesRecord>& operatorSales,
                                 QWidget* parent,
                                 std::string& error) {
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setDocName("Crombi-Cookies-Daily-Sales");
-    QPrintDialog dialog(&printer, parent);
-    if (dialog.exec() != QDialog::Accepted) {
-        error = "Printing cancelled.";
-        return false;
-    }
-    QTextDocument document;
-    document.setHtml(reportHtml(date, report, products, operatorSales));
-    document.print(&printer);
-    return true;
+    return printHtmlWithPreview(
+        QStringLiteral("Crombi-Cookies-Daily-Sales"),
+        QStringLiteral("Daily sales report preview"),
+        QStringLiteral("reportPrintPreviewDialog"),
+        reportHtml(date, report, products, operatorSales), parent, error);
 }
 
 bool ExportService::exportReportCsv(
@@ -346,18 +365,12 @@ bool ExportService::printReport(
     const std::vector<TransactionRefundRecord>& refunds,
     QWidget* parent,
     std::string& error) {
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setDocName("Crombi-Cookies-Sales-Report");
-    QPrintDialog dialog(&printer, parent);
-    if (dialog.exec() != QDialog::Accepted) {
-        error = "Printing cancelled.";
-        return false;
-    }
-    QTextDocument document;
-    document.setHtml(rangeReportHtml(startDate, endDate, report, products,
-                                     operatorSales, refunds));
-    document.print(&printer);
-    return true;
+    return printHtmlWithPreview(
+        QStringLiteral("Crombi-Cookies-Sales-Report"),
+        QStringLiteral("Sales report preview"),
+        QStringLiteral("reportPrintPreviewDialog"),
+        rangeReportHtml(startDate, endDate, report, products,
+                        operatorSales, refunds), parent, error);
 }
 
 bool ExportService::exportReceiptPdf(const std::string& path,
@@ -381,22 +394,10 @@ bool ExportService::printReceipt(const TransactionRecord& transaction,
                                  const std::vector<TransactionItemRecord>& items,
                                  QWidget* parent,
                                  std::string& error) {
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setDocName(QString("Crombi-Receipt-%1").arg(transaction.transactionId));
-    QPrintPreviewDialog dialog(&printer, parent);
-    dialog.setObjectName("receiptPrintPreviewDialog");
-    dialog.setWindowTitle(
+    return printHtmlWithPreview(
+        QString("Crombi-Receipt-%1").arg(transaction.transactionId),
         QString("Receipt preview - Transaction #%1")
-            .arg(transaction.transactionId));
-    QTextDocument document;
-    document.setHtml(receiptHtml(transaction, items));
-    QObject::connect(&dialog, &QPrintPreviewDialog::paintRequested,
-                     &dialog, [&document](QPrinter* previewPrinter) {
-        document.print(previewPrinter);
-    });
-    if (dialog.exec() != QDialog::Accepted) {
-        error = "Printing cancelled.";
-        return false;
-    }
-    return true;
+            .arg(transaction.transactionId),
+        QStringLiteral("receiptPrintPreviewDialog"),
+        receiptHtml(transaction, items), parent, error);
 }

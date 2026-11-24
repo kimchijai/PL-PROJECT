@@ -25,6 +25,7 @@
 #include <QFileInfo>
 
 #include <iostream>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -37,6 +38,39 @@ int transactionRow(QTableWidget* table, int transactionId) {
         }
     }
     return -1;
+}
+
+bool verifyPrintPreviewCanBeCancelled(
+    const QString& objectName,
+    const std::function<bool(std::string&)>& printWorkflow,
+    std::string& error,
+    int minimumPageCount = 1) {
+    bool previewOpened = false;
+    bool enoughPages = false;
+    QTimer::singleShot(0, [&previewOpened, &enoughPages, objectName,
+                           minimumPageCount]() {
+        for (QWidget* widget : QApplication::topLevelWidgets()) {
+            auto* preview = qobject_cast<QPrintPreviewDialog*>(widget);
+            if (!preview || preview->objectName() != objectName)
+                continue;
+            auto* previewWidget = preview->findChild<QPrintPreviewWidget*>();
+            previewOpened = previewWidget != nullptr;
+            if (!previewWidget) {
+                preview->reject();
+                return;
+            }
+            QTimer::singleShot(150, preview, [preview, previewWidget,
+                                               &enoughPages, minimumPageCount]() {
+                enoughPages = previewWidget->pageCount() >= minimumPageCount;
+                preview->reject();
+            });
+            return;
+        }
+    });
+
+    const bool printed = printWorkflow(error);
+    return !printed && previewOpened && enoughPages
+        && error == "Printing cancelled.";
 }
 
 bool verifyProductionDatabase(const std::string& path) {
@@ -451,6 +485,82 @@ bool verifyTemporaryDatabase(const std::string& path) {
         return false;
     }
 
+    std::string previewError;
+    if (!verifyPrintPreviewCanBeCancelled(
+            QStringLiteral("reportPrintPreviewDialog"),
+            [&](std::string& error) {
+                return ExportService::printReport(
+                    exportDate, exportDate, expectedReport, expectedProducts,
+                    expectedOperatorSales, expectedRefunds, nullptr, error);
+            }, previewError)) {
+        std::cerr << "Range report preview did not open or cancel correctly: "
+                  << previewError << "\n";
+        return false;
+    }
+
+    DailySalesRecord dailyReport{};
+    std::vector<ProductSalesRecord> dailyProducts;
+    std::vector<OperatorSalesRecord> dailyOperators;
+    if (!controller.dailySales(exportDate, dailyReport, dailyProducts, exportError)
+        || !controller.dailyOperatorSales(
+            exportDate, dailyOperators, exportError)) {
+        std::cerr << "Could not prepare daily report preview data: "
+                  << exportError << "\n";
+        return false;
+    }
+    if (!verifyPrintPreviewCanBeCancelled(
+            QStringLiteral("reportPrintPreviewDialog"),
+            [&](std::string& error) {
+                return ExportService::printReport(
+                    exportDate, dailyReport, dailyProducts,
+                    dailyOperators, nullptr, error);
+            }, previewError)) {
+        std::cerr << "Daily report preview did not open or cancel correctly: "
+                  << previewError << "\n";
+        return false;
+    }
+
+    SalesReportRecord longReport{};
+    std::vector<ProductSalesRecord> longProducts;
+    std::vector<OperatorSalesRecord> longOperators;
+    std::vector<TransactionRefundRecord> longRefunds;
+    for (int index = 0; index < 60; ++index) {
+        ProductSalesRecord product{};
+        product.productId = "P" + std::to_string(index + 1);
+        product.productName = "Report pagination product " + std::to_string(index + 1);
+        product.quantitySold = index + 1;
+        product.salesCents = (index + 1) * 6500;
+        longProducts.push_back(product);
+
+        TransactionRefundRecord refund{};
+        refund.refundId = index + 1;
+        refund.transactionId = index + 1;
+        refund.refundDate = exportDate;
+        refund.refundType = "refund";
+        refund.reason = "Pagination fixture " + std::to_string(index + 1);
+        refund.refundCents = (index + 1) * 6500;
+        refund.operatorName = "reports_smoke";
+        longRefunds.push_back(refund);
+    }
+    for (int index = 0; index < 12; ++index) {
+        OperatorSalesRecord operatorRecord{};
+        operatorRecord.operatorName = "report_operator_" + std::to_string(index + 1);
+        operatorRecord.transactionCount = index + 1;
+        operatorRecord.salesCents = (index + 1) * 10000;
+        longOperators.push_back(operatorRecord);
+    }
+    if (!verifyPrintPreviewCanBeCancelled(
+            QStringLiteral("reportPrintPreviewDialog"),
+            [&](std::string& error) {
+                return ExportService::printReport(
+                    exportDate, exportDate, longReport, longProducts,
+                    longOperators, longRefunds, nullptr, error);
+            }, previewError, 2)) {
+        std::cerr << "Long report preview did not paginate across multiple pages: "
+                  << previewError << "\n";
+        return false;
+    }
+
     const QString receiptPath = exportDirectory + "/phase4-historical-receipt.pdf";
     std::vector<TransactionItemRecord> historicalItems;
     if (!controller.transactionItems(first.transactionId, historicalItems, exportError)) {
@@ -468,22 +578,12 @@ bool verifyTemporaryDatabase(const std::string& path) {
         return false;
     }
 
-    bool previewOpened = false;
-    QTimer::singleShot(0, [&previewOpened]() {
-        for (QWidget* widget : QApplication::topLevelWidgets()) {
-            auto* preview = qobject_cast<QPrintPreviewDialog*>(widget);
-            if (!preview
-                || preview->objectName() != "receiptPrintPreviewDialog") {
-                continue;
-            }
-            previewOpened = preview->findChild<QPrintPreviewWidget*>() != nullptr;
-            preview->reject();
-            return;
-        }
-    });
-    std::string printError;
-    if (ExportService::printReceipt(first, historicalItems, nullptr, printError)
-        || !previewOpened || printError != "Printing cancelled.") {
+    if (!verifyPrintPreviewCanBeCancelled(
+            QStringLiteral("receiptPrintPreviewDialog"),
+            [&](std::string& error) {
+                return ExportService::printReceipt(
+                    first, historicalItems, nullptr, error);
+            }, previewError)) {
         std::cerr << "Historical receipt printing did not open a cancellable preview.\n";
         return false;
     }
